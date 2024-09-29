@@ -365,12 +365,15 @@ declare -A OIDTYPES
 function clear_cached_oid() {
   local base_oid=$1
   local oid
+  local count=0
   for oid in ${!OIDDATA[@]}; do
     if [[ $oid == $base_oid.* ]]; then
       unset OIDDATA[$oid]
       unset OIDTYPES[$oid]
+      ((count++))
     fi
   done
+  echo "cache: removed $count OIDs" >&$DEBUGLOG
   return 0
 }
 
