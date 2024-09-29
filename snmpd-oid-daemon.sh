@@ -23,7 +23,7 @@ function usage() {
 Usage: $SCRIPT [-b BASE_OID] [-d] [-m FILE] [-n] [-h]
 
 Mandatory arguments to long options are mandatory for short options too.
-  -b, --base=BASE_OID        base OID to operate on, default is '${BASE_OID}'
+  -b, --base=BASE_OID        base OID to operate on, default is '$BASE_OID'
   -d, --debug                enable debug output
   -h, --help                 display this help and exit
   -m, --debug-marker=FILE    debug logs will enabled or disabled during runtime
@@ -31,7 +31,7 @@ Mandatory arguments to long options are mandatory for short options too.
   -o, --overload-script=FILE source file to add or overload data gathering functions
   -n, --no-log               disable logging
   -t, --tag                  mark every line to be logged with the specified tag,
-                             default is '${LOG_TAG}'
+                             default is '$LOG_TAG'
 EOF
 }
 
@@ -185,7 +185,7 @@ function set_oid_list {
   else
     for row_decl in "${DATA[@]}"; do
       local -a row=$(strip_declaration <<<"$row_decl")
-      col_id=${col_start_idx}
+      col_id=$col_start_idx
       type_id=0
       for value in "${row[@]}"; do
         echo $base_oid.$col_id.$row_id
