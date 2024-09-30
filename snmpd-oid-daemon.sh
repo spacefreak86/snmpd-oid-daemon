@@ -446,7 +446,7 @@ function return_oid() {
 # Main logic of the daemon.
 #
 function main() {
-  local cmd line oid req next
+  local buf line cmd oid req next
   local -a args
 
   echo "waiting for all data gathering functions to return data" >&$LOG
@@ -458,29 +458,31 @@ function main() {
       update_oid_cache
     done
     read -r -t 1 -u $STDIN buf
-    local rc=$?
+    rc=$?
     if (( rc > 128 )); then
       line+=$buf
+      echo "< $buf (partial line: '$line')" >&$DEBUGLOG
       continue
     elif (( rc == 0 )); then
       line+=$buf
+      echo "< $line" >&$DEBUGLOG
     else
       exit 255
     fi
-    echo "< $line" >&$DEBUGLOG
+
     if [ -z $cmd ]; then
       cmd=$line
       args=()
     elif [ -z $line ]; then
       cmd=""
       args=()
+      line=""
       snmp_echo NONE
       continue
     else
       args+=("$line")
     fi
     line=""
-
     case "${cmd,,}" in
       ping)
         cmd=""
