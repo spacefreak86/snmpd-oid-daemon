@@ -561,7 +561,7 @@ while :; do
   # Check if main is still alive and exit otherwise.
   ps -p $pid > /dev/null || break
 
-  [ -v EPOCHSECONDS ] && now=$EPOCHSECONDS || now=$(data +%s)
+  [ -v EPOCHSECONDS ] && now=$EPOCHSECONDS || now=$(date +%s)
   for func in "${!DATA_FUNCS[@]}"; do
     if (( now >= ${timetable[$func]:-0} )); then
       delay=${DATA_FUNCS[$func]}
