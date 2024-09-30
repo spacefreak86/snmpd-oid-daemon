@@ -345,7 +345,7 @@ if [ -f "$OVERLOAD_SCRIPT" -a -r "$OVERLOAD_SCRIPT" ]; then
   echo "source $OVERLOAD_SCRIPT" >&$LOG
   source "$OVERLOAD_SCRIPT"
 else
-  echo "overload script '$OVERLOAD_SCRIPT' does not exist or is not readable"
+  echo "overload script '$OVERLOAD_SCRIPT' does not exist or is not readable" >&$DEBUGLOG
 fi
 
 
