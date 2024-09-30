@@ -459,32 +459,36 @@ function main() {
     done
     read -r -t 1 -u $STDIN buf
     rc=$?
-    if (( rc > 128 )); then
+    if (( rc == 0 )); then
+      # received complete line from stdin
+      line=$buf
+    elif (( rc > 128 )); then
+      # read timed out, check for partial data
       if [ -n "$buf" ]; then
-        line+=$buf
-        echo "< $buf (partial line: '$line')" >&$DEBUGLOG
+        echo "< $buf (partial line)" >&$DEBUGLOG
+        line=$buf
+	# read the rest of the line
+	read -r -u $STDIN buf || exit 255
+	line+=$buf
       fi
       continue
-    elif (( rc == 0 )); then
-      line+=$buf
-      echo "< $line" >&$DEBUGLOG
     else
       exit 255
     fi
-
+    echo "< $line" >&$DEBUGLOG
     if [ -z $cmd ]; then
       cmd=$line
       args=()
     elif [ -z $line ]; then
       cmd=""
       args=()
-      line=""
+      echo "empty argument" >&$DEBUGLOG
       snmp_echo NONE
       continue
     else
       args+=("$line")
     fi
-    line=""
+
     case "${cmd,,}" in
       ping)
         cmd=""
