@@ -460,8 +460,10 @@ function main() {
     read -r -t 1 -u $STDIN buf
     rc=$?
     if (( rc > 128 )); then
-      line+=$buf
-      echo "< $buf (partial line: '$line')" >&$DEBUGLOG
+      if [ -n "$buf" ]; then
+        line+=$buf
+        echo "< $buf (partial line: '$line')" >&$DEBUGLOG
+      fi
       continue
     elif (( rc == 0 )); then
       line+=$buf
