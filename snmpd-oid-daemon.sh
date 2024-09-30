@@ -523,7 +523,7 @@ function main() {
         break
       ;;
       *)
-        echo "invalid command '$cmd'" >&$LOG
+        echo "invalid command '$cmd'" >&2
         cmd=""
       ;;
     esac
