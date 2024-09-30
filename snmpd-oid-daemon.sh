@@ -463,15 +463,13 @@ function main() {
       # received complete line from stdin
       line=$buf
     elif (( rc > 128 )); then
-      # read timed out, check for partial data
-      if [ -n "$buf" ]; then
-        echo "< $buf (partial line)" >&$DEBUGLOG
-        line=$buf
-	# read the rest of the line
-	read -r -u $STDIN buf || exit 255
-	line+=$buf
-      fi
-      continue
+      # read timed out, continue if no partial data received
+      [ -z "$buf" ] && continue
+      echo "< $buf (partial line)" >&$DEBUGLOG
+      line=$buf
+      # read the rest of the line
+      read -r -u $STDIN buf || exit 255
+      line+=$buf
     else
       exit 255
     fi
