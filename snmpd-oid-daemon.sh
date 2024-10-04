@@ -529,8 +529,8 @@ function main() {
         break
       ;;
       *)
-        echo "invalid command '$cmd'" >&2
-        cmd=""
+        echo "invalid command '$cmd', exiting ..." >&2
+        break
       ;;
     esac
   done
