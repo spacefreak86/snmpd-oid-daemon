@@ -408,7 +408,7 @@ function update_oid_cache() {
         break
       ;;
       *)
-        echo "cache: received invalid line" >&$DEBUGLOG
+        echo "cache: received invalid line" >&2
       ;;
     esac
   done
