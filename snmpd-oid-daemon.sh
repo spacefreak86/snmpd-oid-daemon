@@ -569,9 +569,10 @@ while :; do
 
   [ -v EPOCHSECONDS ] && now=$EPOCHSECONDS || now=$(date +%s)
   for func in "${!DATA_FUNCS[@]}"; do
-    if (( now >= ${timetable[$func]:-0} )); then
+    next_update=${timetable[$func]:-$now}
+    if (( now >= next_update )); then
       delay=${DATA_FUNCS[$func]}
-      next_update=$((now + delay))
+      ((next_update+=delay))
       timetable[$func]=$next_update
       $first_run && echo "starting $func (refresh every $delay seconds)" >&$LOG
       echo "executing $func, scheduled next refresh at $(date -d @$next_update)" >&$DEBUGLOG
