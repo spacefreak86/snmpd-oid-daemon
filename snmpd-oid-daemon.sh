@@ -575,9 +575,21 @@ while :; do
       ((next_update+=delay))
       timetable[$func]=$next_update
       $first_run && echo "starting $func (refresh every $delay seconds)" >&$LOG
-      echo "executing $func, scheduled next refresh at $(date -d @$next_update)" >&$DEBUGLOG
-      # execute data gathering function and pipe its output to main
-      $func >&$DATAIN
+      echo "gathering: executing $func"
+      data=$($func)
+      rc=$?
+      echo "gathering: $func exited (rc=$rc), schedule next refresh at $(date -d @$next_update)" >&$DEBUGLOG
+      # pipe gathered data to main
+      while read -r line; do
+        echo "gathering: received: $line"
+	last_line=$line
+      done <<< "$data"
+      if [ "$last_line" != "ENDOFDATA" ]; then
+        echo "gathering: $func did not return ENDOFDATA, skipping data" >&2
+	continue
+      fi
+      echo "gathering: sending data update to main"
+      echo "$data" >&$DATAIN
     fi
   done
 
