@@ -556,33 +556,64 @@ exec {STDIN}<&0
 # Start main in a sub-shell and create a writable fd to it.
 echo "daemon starting (PID: $$)" >&$LOG
 exec {DATAIN}> >(main)
-pid=$!
+main_pid=$!
 
 trap "echo daemon stopped >&$LOG" EXIT
 
 declare -A timetable
+declare -A fdtable
+declare -A pidtable
 first_run=true
 while :; do
   # Check if main is still alive and exit otherwise.
-  ps -p $pid > /dev/null || break
+  ps -p $main_pid > /dev/null || break
 
   [ -v EPOCHSECONDS ] && now=$EPOCHSECONDS || now=$(date +%s)
   for func in "${!DATA_FUNCS[@]}"; do
     next_update=${timetable[$func]:-$now}
     if (( now >= next_update )); then
       delay=${DATA_FUNCS[$func]}
+      $first_run && echo "starting $func (refresh every $delay seconds)" >&$LOG
+      fd=${fdtable[$func]:--1}
+      if (( fd == -1 )); then
+        exec {data}< <($func </dev/null)
+	pid=$!
+        echo "gathering: executed $func (PID $pid, FD $data)" >&$DEBUGLOG
+        fdtable[$func]=$data
+	pidtable[$func]=$pid
+      else
+        pid=${pidtable[$func]}
+        echo "gathering: skip executing $func, it is still running (PID $pid, FD $fd)" >&2
+      fi
       ((next_update+=delay))
       timetable[$func]=$next_update
-      $first_run && echo "starting $func (refresh every $delay seconds)" >&$LOG
-      echo "gathering: executing $func" >&$DEBUGLOG
-      data=$($func </dev/null)
-      rc=$?
-      echo "gathering: $func exited (rc=$rc), schedule next refresh at $(date -d @$next_update)" >&$DEBUGLOG
-      if (( rc == 0 )) && [ -n "$data" ]; then
-        echo "gathering: sending data to main" >&$DEBUGLOG
-        echo "$data" 1>&$DATAIN
-        echo "ENDOFDATA" >&$DATAIN
-      fi
+      echo "gathering: scheduled next execution of $func at $(date -d @$next_update)" >&$DEBUGLOG
+    fi
+  done
+
+  for func in "${!fdtable[@]}"; do
+    fd=${fdtable[$func]}
+    (( fd == -1 )) && continue
+    if ! $first_run; then
+      read -t 0 -u $fd
+      (( $? == 0 )) || continue
+    fi
+    data=$(timeout 1 cat <&$fd)
+    rc=$?
+    pid=${pidtable[$func]}
+    if (( rc == 124 )); then
+      echo "gathering: timeout receiving data from $func (PID $pid, FD $fd), killing process" >&2
+      kill -9 $pid
+    fi
+    wait $pid
+    rc=$?
+    echo "gathering: $func exited (rc = $rc)" >&$DEBUGLOG
+    eval "exec $fd>&-"
+    fdtable[$func]=-1
+    if (( rc == 0 )) && [ -n "$data" ]; then
+      echo "gathering: sending data to main" >&$DEBUGLOG
+      echo "$data" 1>&$DATAIN
+      echo "ENDOFDATA" >&$DATAIN
     fi
   done
 
