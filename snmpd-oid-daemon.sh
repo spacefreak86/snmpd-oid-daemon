@@ -566,7 +566,7 @@ declare -A pidtable
 first_run=true
 while :; do
   # Check if main is still alive and exit otherwise.
-  ps -p $main_pid > /dev/null || break
+  ps -p $main_pid >/dev/null || break
 
   [ -v EPOCHSECONDS ] && now=$EPOCHSECONDS || now=$(date +%s)
   for func in "${!DATA_FUNCS[@]}"; do
@@ -600,16 +600,20 @@ while :; do
     fi
     data=$(timeout 1 cat <&$fd)
     rc=$?
+    eval "exec $fd>&-"
+    fdtable[$func]=-1
     pid=${pidtable[$func]}
     if (( rc == 124 )); then
       echo "gathering: timeout receiving data from $func (PID $pid, FD $fd), killing process" >&2
-      kill -9 $pid
+      kill -SIGTERM $pid
+      sleep 1
+      ps -p $pid >/dev/null && kill -SIGKILL $pid
+      rc=137
+    else
+      wait $pid
+      rc=$?
     fi
-    wait $pid
-    rc=$?
-    echo "gathering: $func exited (rc = $rc)" >&$DEBUGLOG
-    eval "exec $fd>&-"
-    fdtable[$func]=-1
+    echo "gathering: $func (PID $pid, FD $fd) exited with rc = $rc" >&$DEBUGLOG
     if (( rc == 0 )) && [ -n "$data" ]; then
       echo "gathering: sending data to main" >&$DEBUGLOG
       echo "$data" 1>&$DATAIN
