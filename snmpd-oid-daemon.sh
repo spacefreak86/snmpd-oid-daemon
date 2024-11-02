@@ -578,16 +578,16 @@ while :; do
       if (( fd == -1 )); then
         exec {data}< <($func </dev/null)
 	pid=$!
-        echo "gathering: executed $func (PID $pid, FD $data)" >&$DEBUGLOG
+        echo "gather: executed $func (PID $pid, FD $data)" >&$DEBUGLOG
         fdtable[$func]=$data
 	pidtable[$func]=$pid
       else
         pid=${pidtable[$func]}
-        echo "gathering: skip executing $func, it is still running (PID $pid, FD $fd)" >&2
+        echo "gather: skip executing $func, it is still running (PID $pid, FD $fd)" >&2
       fi
       ((next_update+=delay))
       timetable[$func]=$next_update
-      echo "gathering: scheduled next execution of $func at $(date -d @$next_update)" >&$DEBUGLOG
+      echo "gathe: scheduled next execution of $func at $(date -d @$next_update)" >&$DEBUGLOG
     fi
   done
 
@@ -604,7 +604,7 @@ while :; do
     fdtable[$func]=-1
     pid=${pidtable[$func]}
     if (( rc == 124 )); then
-      echo "gathering: timeout receiving data from $func (PID $pid, FD $fd), killing process" >&2
+      echo "gather: timeout receiving data from $func (PID $pid, FD $fd), killing process" >&2
       kill -SIGTERM $pid
       sleep 1
       ps -p $pid >/dev/null && kill -SIGKILL $pid
@@ -613,9 +613,9 @@ while :; do
       wait $pid
       rc=$?
     fi
-    echo "gathering: $func (PID $pid, FD $fd) exited with rc = $rc" >&$DEBUGLOG
+    echo "gather: $func (PID $pid, FD $fd) exited with rc = $rc" >&$DEBUGLOG
     if (( rc == 0 )) && [ -n "$data" ]; then
-      echo "gathering: sending data to main" >&$DEBUGLOG
+      echo "gather: sending data to cache" >&$DEBUGLOG
       echo "$data" 1>&$DATAIN
       echo "ENDOFDATA" >&$DATAIN
     fi
