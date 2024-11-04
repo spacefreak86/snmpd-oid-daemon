@@ -598,24 +598,30 @@ while :; do
       read -t 0 -u $fd
       (( $? == 0 )) || continue
     fi
+
     data=$(timeout 1 cat <&$fd)
     rc=$?
     eval "exec $fd>&-"
     fdtable[$func]=-1
+
     pid=${pidtable[$func]}
     if (( rc == 124 )); then
-      echo "gather: timeout receiving data from $func (PID $pid, FD $fd), killing process" >&2
+      echo "gather: timeout receiving data from $func (PID $pid, FD $fd), sending SIGTERM" >&2
       kill -SIGTERM $pid
       sleep 1
-      ps -p $pid >/dev/null && kill -SIGKILL $pid
-      rc=137
-    else
-      wait $pid &>/dev/null
-      rc=$?
-      # the wait function in older Bash versions prior to 5.1 always returns 127 if
-      # the sub-process already exited at this point
-      (( rc == 127 )) && rc=0
+      if ps -p $pid >/dev/null; then
+        echo "gather: unable to terminate $func (PID $pid, FD $fd), sending SIGKILL" >&2
+        kill -SIGKILL $pid
+      fi
+      continue
     fi
+
+    wait $pid &>/dev/null
+    rc=$?
+    # the wait function in older Bash versions prior to 5.1 always returns 127 if the
+    # sub-process already exited at this point
+    (( rc == 127 )) && rc=0
+
     echo "gather: $func (PID $pid, FD $fd) exited with rc = $rc" >&$DEBUGLOG
     if (( rc == 0 )) && [ -n "$data" ]; then
       echo "gather: sending data to cache" >&$DEBUGLOG
