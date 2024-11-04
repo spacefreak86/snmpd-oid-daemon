@@ -610,12 +610,10 @@ while :; do
       ps -p $pid >/dev/null && kill -SIGKILL $pid
       rc=137
     else
-      if (( ${BASH_VERSINFO[0]} >= 5 )) && (( ${BASH_VERSINFO[1]} >= 1 )); then
-        wait $pid
-        rc=$?
-      else
-        rc=0
-      fi
+      wait $pid &>/dev/null
+      rc=$?
+      # the wait function in older Bash versions always returns 127 if the sub-proc already exited
+      (( rc == 127 )) && rc=0
     fi
     echo "gather: $func (PID $pid, FD $fd) exited with rc = $rc" >&$DEBUGLOG
     if (( rc == 0 )) && [ -n "$data" ]; then
