@@ -577,10 +577,10 @@ while :; do
       fd=${fdtable[$func]:--1}
       if (( fd == -1 )); then
         exec {data}< <($func </dev/null)
-	pid=$!
+        pid=$!
         echo "gather: executed $func (PID $pid, FD $data)" >&$DEBUGLOG
         fdtable[$func]=$data
-	pidtable[$func]=$pid
+        pidtable[$func]=$pid
       else
         pid=${pidtable[$func]}
         echo "gather: skip executing $func, it is still running (PID $pid, FD $fd)" >&2
@@ -610,8 +610,12 @@ while :; do
       ps -p $pid >/dev/null && kill -SIGKILL $pid
       rc=137
     else
-      wait $pid
-      rc=$?
+      if (( ${BASH_VERSINFO[0]} >= 5 )) && (( ${BASH_VERSINFO[1]} >= 1 )); then
+        wait $pid
+        rc=$?
+      else
+        rc=0
+      fi
     fi
     echo "gather: $func (PID $pid, FD $fd) exited with rc = $rc" >&$DEBUGLOG
     if (( rc == 0 )) && [ -n "$data" ]; then
