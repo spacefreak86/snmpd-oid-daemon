@@ -446,7 +446,6 @@ function return_oid() {
 #
 function main() {
   local buf line cmd oid req next
-  local -a args
 
   echo "waiting for all data gathering functions to return data" >&$LOG
   update_oid_cache true
@@ -473,18 +472,7 @@ function main() {
       exit 255
     fi
     echo "< $line" >&$DEBUGLOG
-    if [ -z $cmd ]; then
-      cmd=$line
-      args=()
-    elif [ -z $line ]; then
-      cmd=""
-      args=()
-      echo "empty argument" >&$DEBUGLOG
-      snmp_echo NONE
-      continue
-    else
-      args+=("$line")
-    fi
+    cmd=$line
 
     case "${cmd,,}" in
       ping)
@@ -493,14 +481,18 @@ function main() {
       ;;
       set)
         # we need to args here, 'oid' and 'type_and_value'
-        (( ${#args[@]} < 2 )) && continue
         cmd=""
+        read -r -u $STDIN
+        read -r -u $STDIN
         snmp_echo not-writable
       ;;
       get)
-        (( ${#args[@]} < 1 )) && continue
         cmd=""
-        oid=${args[0]}
+        read -r -u $STDIN oid
+        if [ -z "$oid" ]; then
+          echo "received empty oid" >&2
+          snmp_echo NONE
+        fi
         req_from_oid $oid req || continue
         if [[ ! -v OIDDATA[$req] ]]; then
           echo "$oid not found" >&$DEBUGLOG
@@ -510,9 +502,12 @@ function main() {
         return_oid "$req"
       ;;
       getnext)
-        (( ${#args[@]} < 1 )) && continue
         cmd=""
-        oid=${args[0]}
+        read -r -u $STDIN oid
+        if [ -z "$oid" ]; then
+          echo "received empty oid" >&2
+          snmp_echo NONE
+        fi
         req_from_oid $oid req || continue
         next=$(printf "%s\n" ${!OIDDATA[@]} $req | sort -V | grep -A1 -E "^$req\$" | tail -n 1)
         echo "evaluated next candidate: [requested: '$req', next: '$next']" >&$DEBUGLOG
