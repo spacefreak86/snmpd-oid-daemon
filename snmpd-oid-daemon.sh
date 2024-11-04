@@ -612,7 +612,8 @@ while :; do
     else
       wait $pid &>/dev/null
       rc=$?
-      # the wait function in older Bash versions always returns 127 if the sub-proc already exited
+      # the wait function in older Bash versions prior to 5.1 always returns 127 if
+      # the sub-process already exited at this point
       (( rc == 127 )) && rc=0
     fi
     echo "gather: $func (PID $pid, FD $fd) exited with rc = $rc" >&$DEBUGLOG
