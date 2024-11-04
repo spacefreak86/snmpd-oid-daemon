@@ -177,9 +177,7 @@ function set_oid_list {
   if (( ${#COL_TYPES[@]} == 1 )); then
     for row_decl in "${DATA[@]}"; do
       declare -a row=$(strip_declaration <<<"$row_decl")
-      echo $base_oid.$row_id
-      echo ${COL_TYPES[0]}
-      echo ${row[0]//[$'\n'$'\r']/}
+      set_oid "$base_oid.$row_id" "${COL_TYPES[0]}" "${row[0]//[$'\n'$'\r']/}"
       ((row_id++))
     done
   else
@@ -188,9 +186,7 @@ function set_oid_list {
       col_id=$col_start_idx
       type_id=0
       for value in "${row[@]}"; do
-        echo $base_oid.$col_id.$row_id
-        echo ${COL_TYPES[$type_id]}
-        echo ${value//[$'\n'$'\r']/}
+        set_oid "$base_oid.$col_id.$row_id" "${COL_TYPES[$type_id]}" "${value//[$'\n'$'\r']/}"
         ((col_id++))
         ((type_id++))
       done
