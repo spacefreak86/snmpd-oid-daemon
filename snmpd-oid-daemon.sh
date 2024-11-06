@@ -441,7 +441,7 @@ function return_oid() {
 # Main logic of the daemon.
 #
 function main() {
-  local buf line cmd oid req next
+  local buf cmd oid req next
 
   echo "waiting for all data gathering functions to return data" >&$LOG
   update_oid_cache true
@@ -454,21 +454,20 @@ function main() {
     read -r -t 1 -u $STDIN buf
     rc=$?
     if (( rc == 0 )); then
-      # received complete line from stdin
-      line=$buf
+      cmd+=${buf}
     elif (( rc > 128 )); then
-      # read timed out, continue if no partial data received
+      # read timed out
       [ -z "$buf" ] && continue
       echo "< $buf (partial line)" >&$DEBUGLOG
-      line=$buf
-      # read the rest of the line
-      read -r -u $STDIN buf || exit 255
-      line+=$buf
+      cmd+=${buf}
+      # to work around a bug in Bash prior to version 5.3, check if $cmd contains a complete command first before continuing reading
+      # -> bug report: https://lists.gnu.org/archive/html/bug-bash/2024-10/msg00005.html
+      # -> bug fix:    https://git.savannah.gnu.org/cgit/bash.git/diff/builtins/read.def?h=devel&id=3ed028ccec871bc8d3b198c1681374b1e37df7cd
+      [[ "${cmd,,}" =~ ^(ping|set|get|getnext)$ ]] || continue
     else
       exit 255
     fi
-    echo "< $line" >&$DEBUGLOG
-    cmd=$line
+    echo "< $cmd" >&$DEBUGLOG
 
     case "${cmd,,}" in
       ping)
@@ -478,13 +477,16 @@ function main() {
       set)
         # we need to args here, 'oid' and 'type_and_value'
         cmd=""
-        read -r -u $STDIN
-        read -r -u $STDIN
+        read -r -u $STDIN buf
+        echo "< $buf" >&$DEBUGLOG
+        read -r -u $STDIN buf
+        echo "< $buf" >&$DEBUGLOG
         snmp_echo not-writable
       ;;
       get)
         cmd=""
         read -r -u $STDIN oid
+        echo "< $oid" >&$DEBUGLOG
         if [ -z "$oid" ]; then
           echo "received empty oid" >&2
           snmp_echo NONE
@@ -500,6 +502,7 @@ function main() {
       getnext)
         cmd=""
         read -r -u $STDIN oid
+        echo "< $oid" >&$DEBUGLOG
         if [ -z "$oid" ]; then
           echo "received empty oid" >&2
           snmp_echo NONE
