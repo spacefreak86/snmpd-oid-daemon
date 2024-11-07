@@ -593,7 +593,7 @@ while :; do
       (( $? == 0 )) || continue
     fi
 
-    data=$(timeout 1 cat <&$fd)
+    data=$(timeout 5 cat <&$fd)
     rc=$?
     eval "exec $fd>&-"
     fdtable[$func]=-1
